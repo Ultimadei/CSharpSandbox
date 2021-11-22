@@ -2,94 +2,51 @@
 {
     class Ogre : Creature
     {
-        public Ogre(string name) : base(name) 
+        public Ogre(string name) : base(name, 25.0f, 10.0f, 0.2f, 2.5f) 
         {
-            baseStrength = 8.0f;
-            strength = baseStrength;
-            health = 20.0f;
-            criticalChance = 0.5f;
-            criticalMultiplier = 2.5f;
-            cleavageChance = 0.75f;
-            cleavageMultiplier = 0.4f;
+            cleaveChance = 0.8f;
+            cleaveMultiplier = 0.75f;
         }
 
-        public void SpecialBattleRage(string deadOgreName)
+        public override void OnAllyDeath(Creature deadAlly)
         {
-            float strengthMultiplier = 1.5f;
-            float criticalChanceMultiplier = 1.5f;
-            float healthMultiplier = 2.0f;
-            
-            Console.WriteLine(
-                $"[SPECIAL~] {name} is driven into a frenzy over the death of {deadOgreName}!! Its stats are greatly increased " +
-                $"({strengthMultiplier * 100.0f:0}% strength ; {criticalChanceMultiplier * 100.0f:0}% critical chance ; {healthMultiplier * 100.0f:0}% health)"
-            );
-
-            baseStrength *= strengthMultiplier;
-            strength = baseStrength;
-            criticalChance *= criticalChanceMultiplier;
-            health *= healthMultiplier;
+            TriggerBattleRage(deadAlly.Name);
         }
 
-        public void CleaveAttack(Creature target)
+        private void TriggerBattleRage(string deadOgreName)
         {
-            // Disable criticals on cleave attacks
-            float initialCriticalChance = criticalChance;
-            criticalChance = 0.0f;
-            
-            Attack(target);
-
-            // Return criticalChance to its base value
-            criticalChance = initialCriticalChance;
-        }
-
-        public override void Attack(Creature target)
-        {
-            /// Handle criticals
-            
-            bool isCritical = false;
-            // Record strength so that criticals aren't permanent
-            float noncriticalStrength = strength;
-            if (RandomNum.RandomBool(criticalChance))
+            // 30% chance to go into a frenzy
+            if (RandomNum.RandomBool(0.3f))
             {
-                Console.WriteLine($"[CRITICAL] {name} preps for a critical hit ({criticalMultiplier * 100.0f:0}% damage)!");
-                strength *= criticalMultiplier;
-                isCritical = true;
-            }
+                float strengthBonus = 0.5f;
+                float criticalChanceBonus = 0.75f;
+                float criticalDamageBonus = 1.5f;
+                float healthBonus = 1.25f;
 
-            /// Assign damage
-            
-            base.Attack(target);
-            // Return strength to its noncritical value
-            strength = noncriticalStrength;
+                Utils.Write(ConsoleColor.DarkGreen, "[TRIGGER ]", ConsoleColor.Gray, 
+                    $" {name} is driven into a frenzy over the death of {deadOgreName}. Its stats are greatly increased for a few turns!!\n<",
+                    ConsoleColor.Cyan, $"+{strengthBonus * 100.0f:0}%", ConsoleColor.Gray, " strength ; ",
+                    ConsoleColor.Cyan, $"+{criticalChanceBonus * 100.0f:0}%", ConsoleColor.Gray, " critical chance ; ",
+                    ConsoleColor.Cyan, $"+{criticalDamageBonus * 100.0f:0}%", ConsoleColor.Gray, " critical damage ; ",
+                    ConsoleColor.Cyan, $"+{healthBonus * 100.0f:0}%", ConsoleColor.Gray, " health>\n"
+                );
 
-            /// Handle cleavage
+                AddBuff(new Buff(strengthBonus, 2, Buff.BuffType.STRENGTH, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(criticalChanceBonus, 3, Buff.BuffType.CRITICAL_CHANCE, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(criticalChanceBonus, 3, Buff.BuffType.CRITICAL_DAMAGE, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(healthBonus, 1, Buff.BuffType.HEALTH, Buff.BuffOperator.PERCENTAGE));
 
-            float overkill = -target.Health;
-
-            // Overkill is how much excess damage the target was dealt when it died
-            // Critical hits will always cause cleavage, otherwise it has a % chance with cleavageChance 
-            if (overkill * cleavageMultiplier > 0 && (isCritical || RandomNum.RandomBool(cleavageChance)))
-            {
-                strength = overkill * cleavageMultiplier;
-                isCleaving = true;
-                Console.WriteLine($"[PASSIVE~] {name} cleaved right through {target.Name}");
-            } else
-            {
-                // Cleavage has ended, so restore currentStrength to the base value
-                strength = baseStrength;
-                isCleaving = false;
-            }
+                // Applies the buffs without reducing the duration (in order to obtain the new health)
+                ApplyBuffs(0);
+            }            
         }
 
-        protected float criticalChance;
-        protected float criticalMultiplier;
-        protected float cleavageChance;
-        protected float cleavageMultiplier;
-        protected bool isCleaving = false;
-
-        public bool IsCleaving
+        public override void Attack(List<Creature> targets)
         {
-            get { return isCleaving; }
+            base.CleaveAttack(targets, cleaveChance, cleaveMultiplier);
         }
+
+        private readonly float cleaveChance;
+        private readonly float cleaveMultiplier;
     }
 }

@@ -2,23 +2,30 @@
 {
     class MainProgram
     {
-        public static void Main()
+        public static void Fight(List<Creature> offense, List<Creature> defence)
         {
-            Console.WriteLine("~ Combat Simulator 2021 v0.2 ~\n");
-
-            int initialRatCount = 50;
-            int initialOgreCount = 5;
-
-            int ratCount = initialRatCount;
-            int ogreCount = initialOgreCount;
-
-            List<Rat> rats = new(ratCount);
-            List<Ogre> ogres = new(ogreCount);
-
-            for(int i = 0; i < ratCount; i++)
+            foreach(Creature creature in offense)
             {
-                rats.Add(new Rat($"Rat #{i + 1}"));
-                rats[i].GroupSize = ratCount;
+                // Add some spacing
+                Console.Write("\n");
+
+                creature.Attack(defence);                
+
+                // Stop as soon as all the defence have died
+                if (defence.Count == 0) break;
+            }
+        }
+
+        public static void Run(int ratCount, int ogreCount)
+        {
+            Utils.Write(ConsoleColor.Yellow, "~ Combat Simulator 2021 v0.3 ~\n\n", ConsoleColor.White);
+
+            List<Creature> rats = new(ratCount);
+            List<Creature> ogres = new(ogreCount);
+
+            for (int i = 0; i < ratCount; i++)
+            {
+                rats.Add(new Rat($"Rat #{i + 1}", ratCount));
             }
 
             for (int i = 0; i < ogreCount; i++)
@@ -29,85 +36,102 @@
             bool combat = true;
             int turnsElapsed = 0;
 
-            Console.WriteLine($"There are {ratCount} rats, up against {ogreCount} ogres. This might get gruesome :O\n\n");
+            Utils.Write("There are ", ConsoleColor.Blue, $"{ratCount}", ConsoleColor.White, 
+                " rats, up against ", ConsoleColor.Blue, $"{ogreCount}", ConsoleColor.White, " ogres. This might get gruesome!!\n\n");
             while (combat)
             {
-                Console.WriteLine($"\nTurn {turnsElapsed + 1} beginning ~\n");
+                Utils.Write(ConsoleColor.White, "\nTurn ", ConsoleColor.Blue, $"{turnsElapsed + 1}", ConsoleColor.White,
+                    " beginning ~ ", ConsoleColor.Blue, $"{rats.Count}", ConsoleColor.White,
+                " rats and ", ConsoleColor.Blue, $"{ogres.Count}", ConsoleColor.White, " ogres are still alive\n\n");
 
-                // Let the rats take their turn
-                foreach(Rat rat in rats)
+                Utils.Write(ConsoleColor.White, "~~~",  ConsoleColor.DarkYellow, "RAT TURN", ConsoleColor.White, "~~~\n");
+                Fight(rats, ogres);
+                if (ogres.Count > 0) Utils.Write(ConsoleColor.White, "\n~~~", ConsoleColor.DarkYellow, "OGRE TURN", ConsoleColor.White, "~~~\n");
+                Fight(ogres, rats);
+
+                if (ogres.Count == 0)
                 {
-                    // Add some spacing
-                    Console.Write("\n");
-
-                    Ogre target = ogres[ogreCount - 1];
-                    // Attack the closest target (last in the list)
-                    rat.Attack(target);
-
-                    if(target.Dead)
-                    {
-                        // Store the name of the dead ogre for the the next one's special
-                        string deadOgreName = target.Name;
-
-                        ogres.RemoveAt(ogreCount - 1);
-                        ogreCount--;
-                        // Check for victory
-                        if (ogreCount == 0)
-                        {
-                            Console.WriteLine($"\n\nThe rats have won!!! {initialRatCount - ratCount} rats died for the cause.");
-                            combat = false;
-                            goto End;
-                        } else
-                        {
-                            ogres[ogreCount - 1].SpecialBattleRage(deadOgreName);
-                        }
-                    }
+                    Utils.Write(ConsoleColor.White, "\nThe rats have won!!! ",
+                        ConsoleColor.Blue, $"{ratCount - rats.Count}", ConsoleColor.White,
+                        " rats died for the cause\n"
+                    );
+                    combat = false;
                 }
-
-                // Now the ogres
-                foreach (Ogre ogre in ogres)
+                else if (rats.Count == 0)
                 {
-                    Console.Write("\n");
-                    do
-                    {
-                        Rat target = rats[ratCount - 1];
-                        // Cleave attack is configured to disable critical hits
-                        if (ogre.IsCleaving) ogre.CleaveAttack(target);
-                        else ogre.Attack(target);
-
-                        if (target.Dead)
-                        {
-                            rats.RemoveAt(ratCount - 1);
-                            ratCount--;
-                            // Update the rat count
-                            foreach (Rat rat in rats)
-                            {
-                                rat.GroupSize = ratCount;
-                            }
-                            // Check for victory
-                            if (ratCount == 0)
-                            {
-                                Console.WriteLine($"\n\nThe ogres have won!!! {initialOgreCount - ogreCount} ogres died for the cause.");
-                                combat = false;
-                                goto End;
-                            }
-                        }
-                    } while (ogre.IsCleaving);                    
+                    Utils.Write(ConsoleColor.White, "\nThe ogres have won!!! ",
+                        ConsoleColor.Blue, $"{ogreCount - ogres.Count}", ConsoleColor.White,
+                        " ogres died for the cause\n"
+                    );
+                    combat = false;
                 }
 
                 // Increment the turn counter
                 turnsElapsed++;
-
-                // Console.WriteLine("\nPress any key to continue the fight...");
-                // Console.ReadKey();
             }
 
-            End:
+            Utils.Write(ConsoleColor.White, "The war ended after ", 
+                ConsoleColor.Blue, $"{turnsElapsed}", ConsoleColor.White, 
+                " gruelling turns\n\n"
+            );
+        }
 
-            Console.WriteLine($"The war ended after {turnsElapsed + 1} gruelling turns");
+        public static int Main()
+        {
+            bool done = false;
 
-            // Before finishing off
-            Console.ReadKey();
+            int ratCount = 25;
+            int ogreCount = 3;
+
+            while (!done)
+            {
+                Console.Clear();
+
+                Run(ratCount, ogreCount);
+                Utils.Write(ConsoleColor.White, "\nPress ESC to exit, Up arrow to increase creature count, Down arrow to decrease creature count or the Left or Right arrows to switch between selected creature\n");
+
+                bool processing = true;
+                bool ratsSelected = true;
+
+                while (processing)
+                {
+                    if(ratsSelected) Utils.Write(ConsoleColor.White, "Current Armies: < ", ConsoleColor.Yellow, $"{ratCount}", ConsoleColor.White,
+                        $" > rats, {ogreCount} ogres");
+                    else Utils.Write(ConsoleColor.White, $"Current Armies: {ratCount} rats, < ", ConsoleColor.Yellow, $"{ogreCount}", ConsoleColor.White,
+                        $" > ogres");
+
+                    switch (Console.ReadKey(false).Key)
+                    {
+                        case ConsoleKey.Escape:
+                            done = true;
+                            processing = false;
+                            break;
+                        case ConsoleKey.UpArrow:
+                            if (ratsSelected) ratCount++;
+                            else ogreCount++;
+                            break;
+                        case ConsoleKey.DownArrow:
+                            if (ratsSelected) ratCount--;
+                            else ogreCount--;
+
+                            if (ratCount < 1) ratCount = 1;
+                            if (ogreCount < 1) ogreCount = 1;
+                            break;
+                        case ConsoleKey.LeftArrow:
+                        case ConsoleKey.RightArrow:
+                            ratsSelected = !ratsSelected;
+                            break;
+                        default:
+                            processing = false;
+                            break;
+                    }
+
+                    // Clear the line
+                    Console.Write("\r" + new string(' ', Console.BufferWidth - 1) + "\r");
+                }
+            }
+
+            return 0;
         }
     }
 }

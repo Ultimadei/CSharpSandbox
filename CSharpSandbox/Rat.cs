@@ -2,34 +2,46 @@
 {
     class Rat : Creature
     {
-        public Rat(string name) : base(name) 
-        {
-            baseStrength = 1.0f;
-            strength = baseStrength;
-            health = 3.0f;
+        public Rat(string name, int groupSize) : base(name, 3.0f, 1.0f) 
+        { 
+            baseGroupSize = groupSize;
+            this.groupSize = groupSize;
         }
 
-        public override void Attack(Creature target)
+        public override void Attack(List<Creature> targets)
         {
+            // Apply buffs without reducing duration, to ensure the strength is up to date
+            ApplyBuffs(0);
+
             // Rat gets an attack buff if there are enough rats in the group
-            // The minimum rats needed for the buff = 4 + twice this rat's health
-            // The maximum requirement for the buff = 4 + triple this rat's strength & health
-            int groupSizeRequirement = 7 + RandomNum.RandomInteger((int)health * 2, (int)(3 * (health + strength)));
-            if (groupSize > groupSizeRequirement)
+            // The minimum rats needed for the buff = 50% of the original group size
+            // The maximum requirement for the buff = 125% of the original group size 
+            int groupSizeRequirement = (baseGroupSize / 2) + RandomNum.RandomInteger(0, (int)(baseGroupSize * 1.25f));
+            if (groupSize >= groupSizeRequirement)
             {
-                // Activate attack buff. Buff is based on how many more rats were in the group than the random requirement
-                float strengthBuff = (float)Math.Log2(groupSize - groupSizeRequirement) * 0.25f;
-                if(strengthBuff > 0.0f) Console.WriteLine($"[PASSIVE~] {name} is empowered by the rat army: +{strengthBuff:0.00} strength (until it dies)!");
-                strength += strengthBuff;
+                // Activate attack buff. Buff is based on how big the group is and how lucky this rat was
+                float luckFactor = (float)(baseGroupSize / 2) / groupSizeRequirement;
+                float strengthBonus = (float)Math.Log2(1.0 + Math.Pow(groupSize, luckFactor)) * 0.25f;
+
+                if (strengthBonus > 0.0f)
+                {
+                    Utils.Write(ConsoleColor.DarkGray, "[PASSIVE ]", ConsoleColor.Gray,
+                        $" {name} is empowered by the rat army. Its strength is increased permanently! <",
+                        ConsoleColor.Cyan, $"+{strengthBonus:0.00}", ConsoleColor.Gray,
+                        " strength>\n"
+                    );
+                    AddBuff(new Buff(strengthBonus, Buff.DURATION_MAX, Buff.BuffType.STRENGTH, Buff.BuffOperator.FLAT));
+                }
             }
-            base.Attack(target);
+            base.Attack(targets);
         }
 
-        protected int groupSize = 0;
-        public int GroupSize
+        public override void OnAllyDeath(Creature deadAlly)
         {
-            get { return groupSize; }
-            set { groupSize = value; }
+            if (groupSize > 1) groupSize--;
         }
+
+        protected readonly int baseGroupSize = 0;
+        protected int groupSize = 0;
     }
 }
