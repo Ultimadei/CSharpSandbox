@@ -1,0 +1,7 @@
+﻿namespace CSharpSandbox
+{
+    class CreatureGroup
+    {
+
+    }
+}
