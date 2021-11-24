@@ -4,8 +4,11 @@
     {
         public Ogre(CreatureTeam allies, string name) : base(allies, name, 25.0f, 10.0f, 0.2f, 2.5f) 
         {
-            cleaveChance = 0.8f;
-            cleaveMultiplier = 0.75f;
+            baseCleaveChance = 0.8f;
+            baseCleaveMultiplier = 0.75f;
+
+            cleaveChance = baseCleaveChance;
+            cleaveMultiplier = baseCleaveMultiplier;
         }
 
         public override void OnAllyDeath(Creature deadAlly)
@@ -73,8 +76,11 @@
             base.CleaveAttack(targets, cleaveChance, cleaveMultiplier);
         }
 
-        private readonly float cleaveChance;
-        private readonly float cleaveMultiplier;
+        protected readonly float baseCleaveChance;
+        protected readonly float baseCleaveMultiplier;
+
+        protected float cleaveChance;
+        protected float cleaveMultiplier;
 
         private bool isFrenzied = false;
     }

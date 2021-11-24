@@ -39,28 +39,83 @@
             return false;
         }
 
-        public static void Run(string teamAName, string teamBName, int teamARats, int teamASnakes, int teamAOgres, int teamBRats, int teamBSnakes, int teamBOgres)
+        public static void Run(string teamAName, string teamBName, int[] creatureDistribution)
         {
-            Utils.Write(ConsoleColor.Yellow, " ~ Combat Simulator 2021 v0.5 ~\n\n", ConsoleColor.White);
+            Utils.Write(ConsoleColor.Yellow, " ~ Combat Simulator 2021 v0.6 ~\n\n", ConsoleColor.White);
+
+            int creatureTypeCount = CreatureTeam.creatureTypeCount;
+
+            int[] teamACreatureDistribution = new int[creatureTypeCount];
+            int[] teamBCreatureDistribution = new int[creatureTypeCount];
+
+            for (int i = 0; i < creatureTypeCount; i++)
+            {
+                teamACreatureDistribution[i] = creatureDistribution[i];
+            }
+
+            for (int i = 0; i < creatureTypeCount; i++)
+            {
+                // Team B comes second in the distribution array parameter
+                teamBCreatureDistribution[i] = creatureDistribution[i + creatureTypeCount];
+            }
 
             CreatureTeam teamA = new(teamAName);
             CreatureTeam teamB = new(teamBName);
 
-            teamA.Construct(teamARats, teamASnakes, teamAOgres);
-            teamB.Construct(teamBRats, teamBSnakes, teamBOgres);
+            teamA.Construct(teamACreatureDistribution);
+            teamB.Construct(teamBCreatureDistribution);
 
             bool combat = true;
             int turnsElapsed = 0;
 
-            Console.WriteLine($"Team {teamA.TeamName} consists of {teamARats} rats, {teamASnakes} snakes and {teamAOgres} ogres. They are up against {teamBRats} rats, {teamBSnakes} snakes and {teamBOgres} ogres in Team {teamB.TeamName}");
+            for(uint i = 0; i <= 1; i++)
+            {
+                if (i == 0) Utils.Write($"Team {teamA.TeamName} consists of ");
+                else Utils.Write($"Team {teamB.TeamName} consists of ");
+
+                // List the creatures and their counts
+                for (uint j = 0; j < creatureTypeCount; j++)
+                {
+                    Utils.Write(ConsoleColor.Yellow, $"{creatureDistribution[j + (i * creatureTypeCount)]}", 
+                        ConsoleColor.White, $" {CreatureTeam.creatureNamesPlural[j]}");
+
+                    // Grammar
+                    if (j < creatureTypeCount - 2)
+                    {
+                        Utils.Write(", ");
+                    }
+                    else if (j < creatureTypeCount - 1) Utils.Write(" and ");
+                }
+                Utils.Write("\n");
+            }
 
             while (combat)
             {
                 Console.WriteLine($"\nTurn {turnsElapsed + 1} beginning:\n");
-                Console.WriteLine($"{teamA.TeamName}: {teamA.RatCount} rats, {teamA.SnakeCount} snakes and {teamA.OgreCount} ogres still alive"); 
-                Console.WriteLine($"{teamB.TeamName}: {teamB.RatCount} rats, {teamB.SnakeCount} snakes and {teamB.OgreCount} ogres still alive\n");
 
-                Utils.Write(ConsoleColor.White, "~~~",  ConsoleColor.DarkYellow, $" {teamA.TeamName}'s TURN ", ConsoleColor.White, "~~~\n");
+                for (uint i = 0; i <= 1; i++)
+                {
+                    if (i == 0) Utils.Write($"{teamA.TeamName}: ");
+                    else Utils.Write($"{teamB.TeamName}: ");
+
+                    // List the creatures and their counts
+                    for (uint j = 0; j < creatureTypeCount; j++)
+                    {
+                        Utils.Write(ConsoleColor.Yellow, $"{creatureDistribution[j + (i * creatureTypeCount)]}",
+                            ConsoleColor.White, $" {CreatureTeam.creatureNamesPlural[j]}");
+
+                        // Grammar
+                        if (j < creatureTypeCount - 2)
+                        {
+                            Utils.Write(", ");
+                        }
+                        else if (j < creatureTypeCount - 1) Utils.Write(" and ");
+                    }
+
+                    Utils.Write(" are still alive\n");
+                }
+
+                Utils.Write(ConsoleColor.White, "\n~~~",  ConsoleColor.DarkYellow, $" {teamA.TeamName}'s TURN ", ConsoleColor.White, "~~~\n");
                 
                 Fight(teamA, teamB);
                 teamA.Update();
@@ -71,7 +126,7 @@
                     goto EndCombat;
                 }
 
-                Utils.Write(ConsoleColor.White, "\n~~~", ConsoleColor.DarkYellow, $" {teamB.TeamName}'s TURN ", ConsoleColor.White, "~~~\n");
+                Utils.Write(ConsoleColor.White, "~~~", ConsoleColor.DarkYellow, $" {teamB.TeamName}'s TURN ", ConsoleColor.White, "~~~\n");
 
                 Fight(teamB, teamA);
                 teamB.Update();
@@ -94,7 +149,13 @@
         {
             bool done = false;
 
-            int[] creatureDistribution = { 2, 0, 0, 0, 1, 0 };
+            int creatureTypeCount = CreatureTeam.creatureTypeCount;
+            int[] creatureDistribution = new int[creatureTypeCount * 2];
+
+            // Set a rat for team A
+            creatureDistribution[0] = 1;
+            // Set a rat for team B
+            creatureDistribution[creatureTypeCount + 1] = 1;
 
             string teamAName = "Ratimusan";
             string teamBName = "Ogrimkero";
@@ -105,9 +166,7 @@
             {
                 Console.Clear();
 
-                Run(teamAName, teamBName, 
-                    creatureDistribution[0], creatureDistribution[1], creatureDistribution[2], 
-                    creatureDistribution[3], creatureDistribution[4], creatureDistribution[5]);
+                Run(teamAName, teamBName, creatureDistribution);
                 
                 Console.Write("ESC: Exit\nUp arrow / Down arrow: Increase / Decrease selected creature count\nLeft arrow / Right arrow: Switch selected creature\nSpacebar: Return to the top of the screen\nEnter: Replay\n\n");
 
@@ -119,45 +178,36 @@
 
                 while (processing)
                 {
-                    switch (selectedIndex)
+                    // i == 1 corresponds to team A, then 2 -> team B
+                    for(uint i = 0; i <= 1; i++)
                     {
-                        default:
-                        case 0:
-                            Utils.Write(ConsoleColor.White, 
-                                $"{teamAName}: < ", ConsoleColor.Yellow, $"{creatureDistribution[0]}", ConsoleColor.White, $" > rats, {creatureDistribution[1]} snakes, {creatureDistribution[2]} ogres", "\n");
+                        if (i == 0) Utils.Write(ConsoleColor.White, $"{teamAName}: ");
+                        else Utils.Write(ConsoleColor.White, $"{teamBName}: ");
 
-                            Utils.Write(ConsoleColor.White, $"{teamBName}: {creatureDistribution[3]} rats, {creatureDistribution[4]} snakes, {creatureDistribution[5]} ogres");
-                            break;
-                        case 1:
-                            Utils.Write(ConsoleColor.White,
-                                $"{teamAName}: {creatureDistribution[0]} rats, < ", ConsoleColor.Yellow, $"{creatureDistribution[1]}", ConsoleColor.White, $" > snakes, {creatureDistribution[2]} ogres", "\n");
+                        // Iterate over each of the creature types
+                        for(uint j = 0; j < creatureTypeCount; j++)
+                        {
+                            long currentIndex = (i * creatureTypeCount) + j;
 
-                            Utils.Write(ConsoleColor.White, $"{teamBName}: {creatureDistribution[3]} rats, {creatureDistribution[4]} snakes, {creatureDistribution[5]} ogres");
-                            break;
-                        case 2:
-                            Utils.Write(ConsoleColor.White,
-                                $"{teamAName}: {creatureDistribution[0]} rats, {creatureDistribution[1]} snakes, < ", ConsoleColor.Yellow, $"{creatureDistribution[2]}", ConsoleColor.White, $" > ogres", "\n");
+                            // If the selected index matches the team and creature [i, j]
+                            if (selectedIndex == currentIndex)
+                            {
+                                // Then print < > parentheses around the text and color it
+                                Utils.Write(ConsoleColor.White, "< ");
+                                Utils.Write(ConsoleColor.Yellow, $"{creatureDistribution[currentIndex]}");
+                                Utils.Write(ConsoleColor.White, " > ");
+                            }
+                            else Utils.Write(ConsoleColor.White, $"{creatureDistribution[currentIndex]}");
 
-                            Utils.Write(ConsoleColor.White, $"{teamBName}: {creatureDistribution[3]} rats, {creatureDistribution[4]} snakes, {creatureDistribution[5]} ogres");
-                            break;
-                        case 3:
-                            Utils.Write(ConsoleColor.White, $"{teamAName}: {creatureDistribution[0]} rats, {creatureDistribution[1]} snakes, {creatureDistribution[2]} ogres", "\n");
-                            Utils.Write(ConsoleColor.White,
-                                $"{teamBName}: < ", ConsoleColor.Yellow, $"{creatureDistribution[3]}", ConsoleColor.White, $" > rats, {creatureDistribution[4]} snakes, {creatureDistribution[5]} ogres");
-                            break;
-                        case 4:
-                            Utils.Write(ConsoleColor.White, $"{teamAName}: {creatureDistribution[0]} rats, {creatureDistribution[1]} snakes, {creatureDistribution[2]} ogres", "\n");
-                            Utils.Write(ConsoleColor.White,
-                                $"{teamBName}: {creatureDistribution[3]} rats, < ", ConsoleColor.Yellow, $"{creatureDistribution[4]}", ConsoleColor.White, $" > snakes, {creatureDistribution[5]} ogres");
-                            break;
-                        case 5:
-                            Utils.Write(ConsoleColor.White, $"{teamAName}: {creatureDistribution[0]} rats, {creatureDistribution[1]} snakes, {creatureDistribution[2]} ogres", "\n");
-                            Utils.Write(ConsoleColor.White,
-                                $"{teamBName}: {creatureDistribution[3]} rats, {creatureDistribution[4]} snakes, < ", ConsoleColor.Yellow, $"{creatureDistribution[5]}", ConsoleColor.White, $" > ogres");
-                            break;
+                            Utils.Write(ConsoleColor.White, $" {CreatureTeam.creatureNamesPlural[j]}");
+                            // If there are more creatures, use good grammar
+                            if(j < creatureTypeCount - 1) Utils.Write(", ");
+                        }
+                        Utils.Write("\n");
                     }
 
-                    latestLine = Console.GetCursorPosition().Top;
+                    // Subtract one because one more newline was written than was necessary
+                    latestLine = Console.GetCursorPosition().Top - 1;
 
                     ReadKey:
 
@@ -176,11 +226,11 @@
                             break;
                         case ConsoleKey.LeftArrow:
                             selectedIndex--;
-                            if (selectedIndex < 0) selectedIndex = creatureDistribution.Length - 1;
+                            if (selectedIndex < 0) selectedIndex = (creatureTypeCount * 2) - 1;
                             break;
                         case ConsoleKey.RightArrow:
                             selectedIndex++;
-                            if (selectedIndex >= creatureDistribution.Length) selectedIndex = 0;
+                            if (selectedIndex >= creatureTypeCount * 2) selectedIndex = 0;
                             break;
                         case ConsoleKey.Enter:
                             processing = false;

@@ -143,12 +143,15 @@
 
             WriteGenericTwoColors(AttackLabelColor, "[ ATTACK ]", $"{name} attacks {target.Name} with", StatValueColor, $"{strength:0.00}", "strength");
 
-            target.OnDamageTaken(this, strength);
+            OnDamageDealt(target, strength);   
         }
 
-        public virtual void OnTeamUpdate() { }
+        protected virtual void OnDamageDealt(Creature target, float damage)
+        {
+            target.OnDamageTaken(this, damage);
+        }
 
-        public virtual void OnDamageTaken(Creature source, float damage)
+        protected virtual void OnDamageTaken(Creature source, float damage)
         {
             // Apply any buffs that might soften the blow (the duration is not affected)
             ApplyBuffs(0);
@@ -163,13 +166,17 @@
             }
         }
 
-        public virtual void OnDeath(string reason)
+        protected virtual void OnDeath(string reason)
         {
             WriteGenericOneColor(DefeatedLabelColor, "[DEFEATED]", $"{name} {reason}");
             dead = true;
 
             allies.RegisterDeath(this);
         }
+       
+        public virtual void OnAllyDeath(Creature deadAlly) { }
+
+        public virtual void OnTeamUpdate() { }
 
         protected static void WriteGenericOneColor(ConsoleColor openingColor, string opening, string closing)
         {
@@ -203,8 +210,6 @@
                 DamageLabelColor, "[ DAMAGE ]", $"{name} took", DamageValueColor, $"{damage:0.00}", $"damage{(reason.Length > 0 ? " " : ",")}{reason} leaving it with", 
                 healthRemaining < 0.0f ? DamageValueColor : HealthValueColor, $"{healthRemaining:0.00}", "health remaining");
         }
-
-        public virtual void OnAllyDeath(Creature deadAlly) { }
 
         protected readonly float baseStrength;
         protected readonly float baseCriticalChance;

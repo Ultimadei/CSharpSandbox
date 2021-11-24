@@ -24,7 +24,7 @@
         }
         */
 
-        public override void OnDamageTaken(Creature source, float damage)
+        protected override void OnDamageTaken(Creature source, float damage)
         {
             ApplyBuffs(0);
 
