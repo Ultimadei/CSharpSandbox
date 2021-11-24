@@ -2,7 +2,7 @@
 {
     class Ogre : Creature
     {
-        public Ogre(string name) : base(name, 25.0f, 10.0f, 0.2f, 2.5f) 
+        public Ogre(CreatureTeam allies, string name) : base(allies, name, 25.0f, 10.0f, 0.2f, 2.5f) 
         {
             cleaveChance = 0.8f;
             cleaveMultiplier = 0.75f;
@@ -13,40 +13,69 @@
             TriggerBattleRage(deadAlly.Name);
         }
 
+        protected override void ApplyBuffs(int durationPenalty = 1)
+        {
+            base.ApplyBuffs(durationPenalty);
+
+            IList<Buff> updatedBuffs = new List<Buff>();
+
+            foreach (Buff buff in buffs)
+            {
+                switch (buff.Type)
+                {
+                    case Buff.BuffType.FRENZY_TIMER:
+                        // As long as the "buff" is active, frenzy cannot be reapplied
+                        if (buff.Apply(0.0f, durationPenalty) != 1.0f)
+                        {
+                            isFrenzied = false;
+                            continue;
+                        }
+                        break;
+                    default:
+                        break;
+                }
+                updatedBuffs.Add(buff);
+            }
+        }
+
         private void TriggerBattleRage(string deadOgreName)
         {
-            // 30% chance to go into a frenzy
-            if (RandomNum.RandomBool(0.3f))
+            // 40% chance to go into a frenzy if it's not already in it
+            if (!isFrenzied && RandomNum.RandomBool(0.4f))
             {
                 float strengthBonus = 0.5f;
                 float criticalChanceBonus = 0.75f;
                 float criticalDamageBonus = 1.5f;
                 float healthBonus = 1.25f;
 
-                Utils.Write(ConsoleColor.DarkGreen, "[TRIGGER ]", ConsoleColor.Gray, 
+                Utils.Write(ConsoleColor.DarkGreen, "[TRIGGER ]", Utils.DefaultColor, 
                     $" {name} is driven into a frenzy over the death of {deadOgreName}. Its stats are greatly increased for a few turns!!\n<",
-                    ConsoleColor.Cyan, $"+{strengthBonus * 100.0f:0}%", ConsoleColor.Gray, " strength ; ",
-                    ConsoleColor.Cyan, $"+{criticalChanceBonus * 100.0f:0}%", ConsoleColor.Gray, " critical chance ; ",
-                    ConsoleColor.Cyan, $"+{criticalDamageBonus * 100.0f:0}%", ConsoleColor.Gray, " critical damage ; ",
-                    ConsoleColor.Cyan, $"+{healthBonus * 100.0f:0}%", ConsoleColor.Gray, " health>\n"
+                    ConsoleColor.Cyan, $"+{strengthBonus * 100.0f:0}%", Utils.DefaultColor, " strength ; ",
+                    ConsoleColor.Cyan, $"+{criticalChanceBonus * 100.0f:0}%", Utils.DefaultColor, " critical chance ; ",
+                    ConsoleColor.Cyan, $"+{criticalDamageBonus * 100.0f:0}%", Utils.DefaultColor, " critical damage ; ",
+                    ConsoleColor.Cyan, $"+{healthBonus * 100.0f:0}%", Utils.DefaultColor, " health>\n"
                 );
 
-                AddBuff(new Buff(strengthBonus, 2, Buff.BuffType.STRENGTH, Buff.BuffOperator.PERCENTAGE));
-                AddBuff(new Buff(criticalChanceBonus, 3, Buff.BuffType.CRITICAL_CHANCE, Buff.BuffOperator.PERCENTAGE));
-                AddBuff(new Buff(criticalChanceBonus, 3, Buff.BuffType.CRITICAL_DAMAGE, Buff.BuffOperator.PERCENTAGE));
-                AddBuff(new Buff(healthBonus, 1, Buff.BuffType.HEALTH, Buff.BuffOperator.PERCENTAGE));
+                isFrenzied = true;
 
-                // Applies the buffs without reducing the duration (in order to obtain the new health)
-                ApplyBuffs(0);
-            }            
+                AddBuff(new Buff(strengthBonus, 2, "Battle Rage", Buff.BuffType.STRENGTH, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(criticalChanceBonus, 3, "Battle Rage", Buff.BuffType.CRITICAL_CHANCE, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(criticalChanceBonus, 3, "Battle Rage", Buff.BuffType.CRITICAL_DAMAGE, Buff.BuffOperator.PERCENTAGE));
+                AddBuff(new Buff(1.0f, 3, "Battle Rage", Buff.BuffType.FRENZY_TIMER, Buff.BuffOperator.FLAT));
+
+                // Health bonus is instantaneous
+                health += health * healthBonus;
+            }
         }
 
-        public override void Attack(List<Creature> targets)
+        public override void Attack(CreatureTeam targets)
         {
             base.CleaveAttack(targets, cleaveChance, cleaveMultiplier);
         }
 
         private readonly float cleaveChance;
         private readonly float cleaveMultiplier;
+
+        private bool isFrenzied = false;
     }
 }

@@ -2,12 +2,13 @@
 {
     class Buff
     {
-        public Buff(float value, int duration, BuffType type, BuffOperator op = BuffOperator.FLAT)
+        public Buff(float value, int duration, string description, BuffType type, BuffOperator op = BuffOperator.FLAT)
         {
             this.value = value;
             this.duration = duration;
+            this.description = description;
             this.type = type;
-            this.op = op;
+            this.op = op;            
         }
 
         public enum BuffType
@@ -15,7 +16,8 @@
             STRENGTH,
             HEALTH,
             CRITICAL_CHANCE,
-            CRITICAL_DAMAGE
+            CRITICAL_DAMAGE,
+            FRENZY_TIMER
         }
 
         public enum BuffOperator
@@ -27,12 +29,13 @@
         // Returns the amount that this buff would increase value by (does not modify value itself)
         public float Apply(float value, int durationPenalty = 1)
         {
-            // Reduce the duration
-            if(duration != DURATION_MAX) duration -= durationPenalty;
-
             // If this buff has expired, do not apply any buff
             if (duration <= 0) return 0.0f;
-            else if (op == BuffOperator.FLAT) return this.value;
+
+            // Reduce the duration
+            if (duration != DURATION_MAX) duration -= durationPenalty;
+            
+            if (op == BuffOperator.FLAT) return this.value;
             else if (op == BuffOperator.PERCENTAGE) return this.value * value;
 
             // Should be unreachable 
@@ -42,6 +45,7 @@
         private readonly float value;
         private readonly BuffType type;
         private readonly BuffOperator op;
+        private readonly string description;
 
         private int duration;
 
@@ -52,5 +56,6 @@
         public BuffOperator Op { get { return op; } }
         public float Value { get { return value; } }
         public int Duration { get { return duration; } }
+        public string Description { get { return description; } }
     }
 }

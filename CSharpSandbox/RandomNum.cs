@@ -23,6 +23,6 @@
             return chance == 0.0 ? false : RandomDouble(0.0, 1.0) <= chance;
         }
 
-        private static Random rng = new Random();
+        public static readonly Random rng = new();
     }
 }
